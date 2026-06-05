@@ -1,58 +1,45 @@
-# 🏠 Homelab
+# 🏠 Homelab by Loris
 
-Mein persönliches Homelab auf einem Proxmox VE Server.
+> Ein vollständiges Self-Hosted Homelab auf einem Proxmox VE Server – inspiriert von der Community, gebaut für den Alltag.
 
 ## 🖥️ Hardware
 
 | Komponente | Details |
 |------------|---------|
 | Gerät | Lenovo ThinkCentre M720q Tiny |
-| CPU | Intel i5-8400T (6 Kerne) |
-| RAM | 16GB |
+| CPU | Intel i5-8400T (6 Kerne, 1.7-3.3GHz) |
+| RAM | 16GB DDR4 |
 | SSD | 256GB |
 | OS | Proxmox VE 9.2.3 |
 
-## 🌐 Netzwerk
+## 📁 Struktur
+homelab/
+├── docs/          # Dokumentation
+├── projects/      # Eigene Projekte
+├── n8n-workflows/ # Automation Workflows
+└── config/        # Konfigurationsbeispiele
+## 🚀 Quick Start
 
-- Router: Swisscom Internet-Box 5
-- DNS: Pi-hole
-- VPN: WireGuard
-- DDNS: DuckDNS
+1. Proxmox VE installieren
+2. Container nach Anleitung erstellen
+3. Services konfigurieren
+4. n8n Workflows importieren
 
-## 🛠️ Services
+## 📚 Dokumentation
 
-| Service | Beschreibung |
-|---------|--------------|
-| Pi-hole | DNS & Ad-Blocker |
-| Vaultwarden | Passwort Manager |
-| WireGuard | VPN |
-| Uptime Kuma | Monitoring |
-| Home Assistant | Smart Home |
-| Immich | Foto Backup |
-| Jellyfin | Media Server |
-| Nextcloud | Cloud Storage |
-| Open WebUI | AI Interface |
-| Ollama | Lokale KI |
-| Ntfy | Push Benachrichtigungen |
-| Gitea | Git Server |
-| n8n | Automation |
-| Homarr | Dashboard |
-| Caddy | Reverse Proxy |
+- [Hardware & Setup](docs/hardware.md)
+- [Netzwerk](docs/networking.md)
+- [Services](docs/services.md)
+- [Container Setup](docs/containers.md)
+- [n8n Workflows](n8n-workflows/README.md)
+- [Eigene Projekte](projects/README.md)
 
-## 🤖 Automation (n8n)
+## ⭐ Features
 
-- 🌤️ Täglicher Wetterbericht
-- 🖥️ Homelab Status Report
-- 📸 Immich Foto Zusammenfassung
-- 🎮 Minecraft Server Status
-- 🖥️ Neues Gerät im Netzwerk
-
-## 🎨 Eigene Projekte
-
-- 🗺️ Weltmap – Besuchte Orte mit Leaflet.js
-- 📰 News Aggregator – Schweizer News mit Flask
-- 🔍 NetSpy – Netzwerk Scanner Dashboard
-- 🎮 Spiele-Plattform – 17 Browser Spiele
-- 🎵 BeatLab Studio – Online DAW
-- 🖥️ eDEX-UI – Terminal Dashboard# homelab
-🏠 My self-hosted homelab running on Proxmox VE
+- 🔒 Sicherer Fernzugriff via WireGuard VPN
+- 🌐 HTTPS für alle Services via Caddy
+- 🚫 Ad-Blocking via Pi-hole
+- 📊 Monitoring via Uptime Kuma
+- 🤖 Automation via n8n
+- 📱 Push Benachrichtigungen via Ntfy
+- 🤖 Lokale KI via Ollama + Open WebUI
