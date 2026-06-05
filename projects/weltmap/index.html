@@ -1,0 +1,192 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loris Welt</title>
+<link rel="stylesheet" href="leaflet.css"/>
+<script src="leaflet.js"></script>
+<style>
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:monospace;background:#0f0e0c;color:#f5f0e8;height:100vh;display:flex;flex-direction:column;overflow:hidden}
+header{display:flex;align-items:center;justify-content:space-between;padding:12px 24px;background:#0f0e0c;border-bottom:1px solid rgba(255,255,255,0.1);z-index:1000;flex-shrink:0}
+h1{font-size:1.3rem;font-weight:900}
+h1 span{color:#c8392b}
+.stats{display:flex;gap:20px;font-size:0.7rem;color:rgba(255,255,255,0.5);text-transform:uppercase}
+.stat-val{color:#f5f0e8;font-size:1.1rem;display:block}
+.controls{display:flex;gap:8px}
+.btn{font-family:monospace;font-size:0.7rem;padding:8px 16px;border:1px solid rgba(255,255,255,0.2);background:transparent;color:#f5f0e8;cursor:pointer;text-transform:uppercase}
+.btn.active{background:#c8392b;border-color:#c8392b}
+.btn.wl.active{background:#1a3a6b;border-color:#1a3a6b}
+#map{flex:1}
+.leaflet-container{background:#1a1814!important}
+.leaflet-popup-content-wrapper{background:#0f0e0c!important;color:#f5f0e8!important;border-radius:0!important;border:1px solid rgba(255,255,255,0.2)!important}
+.leaflet-popup-tip{background:#0f0e0c!important}
+.overlay{position:fixed;inset:0;background:rgba(0,0,0,0.8);z-index:2000;display:none;align-items:center;justify-content:center}
+.overlay.open{display:flex}
+.modal{background:#f5f0e8;color:#0f0e0c;width:420px;max-width:95vw;padding:28px}
+.modal h2{font-size:1.3rem;margin-bottom:16px}
+.modal label{display:block;font-size:0.65rem;text-transform:uppercase;color:rgba(0,0,0,0.5);margin-bottom:4px}
+.modal input,.modal textarea{width:100%;background:#e8dfc8;border:1px solid rgba(0,0,0,0.15);padding:10px;font-family:monospace;font-size:0.85rem;color:#0f0e0c;margin-bottom:12px;outline:none}
+.tbtn{flex:1;padding:10px;font-family:monospace;font-size:0.7rem;text-transform:uppercase;border:1px solid rgba(0,0,0,0.2);background:transparent;cursor:pointer;color:#0f0e0c}
+.tbtn.sv{background:#2c5f2e;border-color:#2c5f2e;color:white}
+.tbtn.sw{background:#1a3a6b;border-color:#1a3a6b;color:white}
+.tbtns{display:flex;gap:8px;margin-bottom:16px}
+.mactions{display:flex;gap:8px;justify-content:flex-end;margin-top:8px}
+.mbtn{font-family:monospace;font-size:0.7rem;text-transform:uppercase;padding:10px 20px;border:none;cursor:pointer}
+.mbtn.save{background:#c8392b;color:white}
+.mbtn.cancel{background:#e8dfc8;color:#0f0e0c}
+.sidebar{position:fixed;right:-320px;top:57px;bottom:0;width:300px;background:#0f0e0c;border-left:1px solid rgba(255,255,255,0.1);z-index:900;transition:right 0.3s;overflow-y:auto}
+.sidebar.open{right:0}
+.sidebar h3{padding:16px 20px;border-bottom:1px solid rgba(255,255,255,0.1);font-size:0.9rem}
+.sitem{padding:12px 20px;border-bottom:1px solid rgba(255,255,255,0.05);cursor:pointer;display:flex;align-items:center;gap:10px}
+.sitem:hover{background:rgba(255,255,255,0.05)}
+.dot{width:8px;height:8px;border-radius:50%;flex-shrink:0}
+.dot.v{background:#4a9e4e}
+.dot.w{background:#4a72b8}
+.sname{font-size:0.8rem;flex:1}
+.sdel{background:none;border:none;color:rgba(255,255,255,0.2);cursor:pointer;font-size:0.9rem}
+.sdel:hover{color:#c8392b}
+</style>
+</head>
+<body>
+<header>
+  <h1>Loris<span>'</span> Welt</h1>
+  <div class="stats">
+    <div><span class="stat-val" id="sv">0</span>Besucht</div>
+    <div><span class="stat-val" id="sw">0</span>Wunsch</div>
+    <div><span class="stat-val" id="sc">0</span>Länder</div>
+  </div>
+  <div class="controls">
+    <button class="btn active" id="bv" onclick="setMode('v')">📍 Besucht</button>
+    <button class="btn wl" id="bw" onclick="setMode('w')">⭐ Wunsch</button>
+    <button class="btn" onclick="toggleSidebar()">☰ Liste</button>
+  </div>
+</header>
+<div id="map"></div>
+<div class="overlay" id="overlay">
+  <div class="modal">
+    <h2>Ort hinzufügen</h2>
+    <label>Typ</label>
+    <div class="tbtns">
+      <button class="tbtn sv" id="tv" onclick="setMT('v')">📍 Besucht</button>
+      <button class="tbtn" id="tw" onclick="setMT('w')">⭐ Wunschliste</button>
+    </div>
+    <label>Name</label>
+    <input type="text" id="pname" placeholder="z.B. Zürich, Schweiz"/>
+    <label>Notiz (optional)</label>
+    <textarea id="pnote" rows="3" placeholder="Was war besonders?"></textarea>
+    <div class="mactions">
+      <button class="mbtn cancel" onclick="closeModal()">Abbrechen</button>
+      <button class="mbtn save" id="savebtn">Speichern</button>
+    </div>
+  </div>
+</div>
+<div class="sidebar" id="sidebar">
+  <h3>Meine Orte</h3>
+  <div id="slist"></div>
+</div>
+<script>
+var places = JSON.parse(localStorage.getItem('lw') || '[]');
+var mode = 'v';
+var mt = 'v';
+var plat = null;
+var plng = null;
+var sopen = false;
+
+var map = L.map('map').setView([20, 10], 2);
+L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
+  attribution: '© OpenStreetMap'
+}).addTo(map);
+
+var markers = [];
+
+function mkIcon(t) {
+  var c = t === 'v' ? '#4a9e4e' : '#4a72b8';
+  var e = t === 'v' ? '●' : '★';
+  return L.divIcon({
+    html: '<div style="width:20px;height:20px;background:' + c + ';border-radius:50%;border:3px solid white;box-shadow:0 2px 6px rgba(0,0,0,0.5)"></div>',
+    className: '',
+    iconSize: [20, 20],
+    iconAnchor: [10, 10],
+    popupAnchor: [0, -14]
+  });
+}
+
+function render() {
+  markers.forEach(function(m) { map.removeLayer(m); });
+  markers = [];
+  places.forEach(function(p, i) {
+    var m = L.marker([p.lat, p.lng], { icon: mkIcon(p.t) }).addTo(map);
+    m.bindPopup('<b>' + p.name + '</b><br><small>' + (p.t === 'v' ? '📍 Besucht' : '⭐ Wunsch') + '</small>' + (p.note ? '<br>' + p.note : ''));
+    markers.push(m);
+  });
+  document.getElementById('sv').textContent = places.filter(function(p) { return p.t === 'v'; }).length;
+  document.getElementById('sw').textContent = places.filter(function(p) { return p.t === 'w'; }).length;
+  document.getElementById('sc').textContent = new Set(places.map(function(p) { return p.name.split(',').pop().trim(); })).size;
+  var sl = document.getElementById('slist');
+  sl.innerHTML = places.length === 0
+    ? '<div style="padding:20px;color:rgba(255,255,255,0.3);font-size:0.75rem">Noch keine Orte.</div>'
+    : places.map(function(p, i) {
+        return '<div class="sitem" onclick="flyTo(' + i + ')"><div class="dot ' + p.t + '"></div><div class="sname">' + p.name + '</div><button class="sdel" onclick="del(event,' + i + ')">✕</button></div>';
+      }).join('');
+}
+
+function flyTo(i) { map.flyTo([places[i].lat, places[i].lng], 8); markers[i].openPopup(); }
+function del(e, i) { e.stopPropagation(); places.splice(i, 1); save(); render(); }
+
+map.on('click', function(e) {
+  plat = e.latlng.lat;
+  plng = e.latlng.lng;
+  mt = mode;
+  document.getElementById('pname').value = '';
+  document.getElementById('pnote').value = '';
+  document.getElementById('pname').style.borderColor = '';
+  setMT(mode);
+  document.getElementById('overlay').classList.add('open');
+  setTimeout(function() { document.getElementById('pname').focus(); }, 150);
+});
+
+document.getElementById('savebtn').addEventListener('click', function() {
+  if (plat === null) { alert('Fehler: Kein Ort ausgewählt'); return; }
+  var n = document.getElementById('pname').value.trim();
+  if (!n) { document.getElementById('pname').style.borderColor = '#c8392b'; return; }
+  places.push({ lat: plat, lng: plng, name: n, note: document.getElementById('pnote').value.trim(), t: mt });
+  save();
+  render();
+  closeModal();
+});
+
+function setMode(m) {
+  mode = m;
+  document.getElementById('bv').classList.toggle('active', m === 'v');
+  document.getElementById('bw').classList.toggle('active', m === 'w');
+}
+
+function setMT(t) {
+  mt = t;
+  document.getElementById('tv').className = 'tbtn' + (t === 'v' ? ' sv' : '');
+  document.getElementById('tw').className = 'tbtn' + (t === 'w' ? ' sw' : '');
+}
+
+function closeModal() {
+  document.getElementById('overlay').classList.remove('open');
+  plat = null;
+  plng = null;
+}
+
+function toggleSidebar() {
+  sopen = !sopen;
+  document.getElementById('sidebar').classList.toggle('open', sopen);
+}
+
+function save() { localStorage.setItem('lw', JSON.stringify(places)); }
+
+document.addEventListener('keydown', function(e) {
+  if (e.key === 'Escape') closeModal();
+});
+
+render();
+</script>
+</body>
+</html>

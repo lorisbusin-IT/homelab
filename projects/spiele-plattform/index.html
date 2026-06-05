@@ -1,0 +1,64 @@
+<!DOCTYPE html>
+<html lang="de">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Loris Games</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Press+Start+2P&display=swap');
+*{margin:0;padding:0;box-sizing:border-box}
+body{font-family:'Press Start 2P',monospace;background:#0a0a0a;color:#fff;min-height:100vh}
+header{text-align:center;padding:40px 20px 20px;border-bottom:2px solid #333}
+.logo{font-size:2rem;color:#ffff00;text-shadow:0 0 20px #ffff00;margin-bottom:8px}
+.logo span{color:#ff44ff}
+.subtitle{font-size:0.5rem;color:rgba(255,255,255,0.4);letter-spacing:0.2em}
+.grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:16px;padding:32px;max-width:1200px;margin:0 auto}
+.card{background:#111;border:2px solid #333;padding:24px 16px;text-align:center;cursor:pointer;transition:all 0.2s;text-decoration:none;display:block}
+.card:hover{border-color:#ffff00;transform:translateY(-4px);box-shadow:0 8px 24px rgba(255,255,0,0.2)}
+.card-icon{font-size:3rem;margin-bottom:12px;display:block}
+.card-name{font-size:0.55rem;color:#fff;margin-bottom:8px}
+.card-desc{font-size:0.4rem;color:rgba(255,255,255,0.4);line-height:1.6}
+.card.coming{opacity:0.4;cursor:not-allowed}
+.card.coming:hover{transform:none;border-color:#333;box-shadow:none}
+.section{padding:0 32px;max-width:1200px;margin:0 auto}
+.section-title{font-size:0.6rem;color:#ff44ff;margin:24px 0 12px;border-left:3px solid #ff44ff;padding-left:12px}
+</style>
+</head>
+<body>
+<header>
+  <div class="logo">LORIS <span>GAMES</span></div>
+  <div class="subtitle">INSERT COIN TO PLAY</div>
+</header>
+
+<div class="section"><div class="section-title">▶ KLASSIKER</div></div>
+<div class="grid" id="klassiker">
+  <a class="card" href="games/snake.html"><span class="card-icon">🐍</span><div class="card-name">SNAKE</div><div class="card-desc">Frisst alles auf deinem Weg</div></a>
+  <a class="card" href="games/tetris.html"><span class="card-icon">🧱</span><div class="card-name">TETRIS</div><div class="card-desc">Stapel die Blöcke</div></a>
+  <a class="card" href="games/spaceinvaders.html"><span class="card-icon">👾</span><div class="card-name">SPACE INVADERS</div><div class="card-desc">Schiess die Aliens ab</div></a>
+  <a class="card" href="games/pacman.html"><span class="card-icon">🟡</span><div class="card-name">PAC-MAN</div><div class="card-desc">Frisst Punkte, flieht vor Geistern</div></a>
+  <a class="card" href="games/pong.html"><span class="card-icon">🏓</span><div class="card-name">PONG</div><div class="card-desc">Das erste Videospiel</div></a>
+  <a class="card" href="games/minesweeper.html"><span class="card-icon">💣</span><div class="card-name">MINESWEEPER</div><div class="card-desc">Finde alle Minen</div></a>
+  <a class="card" href="games/memory.html"><span class="card-icon">🃏</span><div class="card-name">MEMORY</div><div class="card-desc">Merke dir die Karten</div></a>
+  <a class="card" href="games/2048.html"><span class="card-icon">⬛</span><div class="card-name">2048</div><div class="card-desc">Erreiche 2048</div></a>
+</div>
+
+<div class="section"><div class="section-title">▶ WORT & RÄTSEL</div></div>
+<div class="grid">
+  <a class="card" href="games/wordle.html"><span class="card-icon">📝</span><div class="card-name">WORDLE</div><div class="card-desc">Rate das Wort in 6 Versuchen</div></a>
+  <a class="card" href="games/quiz.html"><span class="card-icon">❓</span><div class="card-name">QUIZ</div><div class="card-desc">Teste dein Wissen</div></a>
+  <a class="card" href="games/sudoku.html"><span class="card-icon">🔢</span><div class="card-name">SUDOKU</div><div class="card-desc">Fülle das 9x9 Gitter</div></a>
+  <a class="card" href="games/hangman.html"><span class="card-icon">✏️</span><div class="card-name">HANGMAN</div><div class="card-desc">Rate den Begriff</div></a>
+</div>
+
+<div class="section"><div class="section-title">▶ ACTION</div></div>
+<div class="grid">
+  <a class="card" href="games/dino.html"><span class="card-icon">🦕</span><div class="card-name">DINO RUNNER</div><div class="card-desc">Spring über Hindernisse</div></a>
+  <a class="card" href="games/asteroids.html"><span class="card-icon">🚀</span><div class="card-name">ASTEROIDS</div><div class="card-desc">Schiess Asteroiden ab</div></a>
+  <a class="card" href="games/runner.html"><span class="card-icon">🏃</span><div class="card-name">ENDLESS RUNNER</div><div class="card-desc">Lauf so weit wie möglich</div></a>
+  <a class="card" href="games/aimtrainer.html"><span class="card-icon">🎯</span><div class="card-name">AIM TRAINER</div><div class="card-desc">Verbessere deine Reaktion</div></a>
+  <a class="card" href="games/simon.html"><span class="card-icon">🪄</span><div class="card-name">SIMON SAYS</div><div class="card-desc">Folge dem Muster</div></a>
+</div>
+
+<div style="text-align:center;padding:32px;font-size:0.4rem;color:rgba(255,255,255,0.2)">© LORIS GAMES • SELF-HOSTED ON PROXMOX</div>
+</body>
+</html>
