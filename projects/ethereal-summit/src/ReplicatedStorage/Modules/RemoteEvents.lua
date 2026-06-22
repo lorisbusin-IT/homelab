@@ -95,6 +95,10 @@ local RemoteEvents = {
 	-- Mystery Crates (NEU)
 	OPEN_CRATE           = "OpenCrate",            -- C→S: crateType
 	CRATE_RESULT         = "CrateResult",          -- S→C: success, result, msg
+
+	-- Ore-Sync (Client fragt aktive Erze beim Join an)
+	REQUEST_ORES         = "RequestOres",          -- C→S: (kein Argument)
+	ORES_DATA            = "OresData",             -- S→C: table aller aktiven Ore-Nodes
 }
 
 return RemoteEvents

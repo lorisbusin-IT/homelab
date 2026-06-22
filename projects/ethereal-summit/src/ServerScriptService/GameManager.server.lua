@@ -511,6 +511,24 @@ getEv(RE.USE_GEMS).OnServerEvent:Connect(function(player, action, amount)
 	end
 end)
 
+-- ========== Ore-Sync: Client fragt alle aktiven Erze an ==========
+getEv(RE.REQUEST_ORES).OnServerEvent:Connect(function(player)
+	local evt = getEv(RE.ORES_DATA)
+	if not evt then return end
+	local ores = {}
+	for oreId, node in pairs(ResourceSystem.getOreNodes()) do
+		ores[oreId] = {
+			islandIndex = node.islandIndex,
+			position    = node.position,
+			resource    = node.resource,
+			maxHp       = node.maxHp,
+			isLucky     = node.isLucky or false,
+			isBoss      = node.isBoss or false,
+		}
+	end
+	evt:FireClient(player, ores)
+end)
+
 -- ========== Sonstiges ==========
 getEv(RE.REQUEST_PLAYER_DATA).OnServerEvent:Connect(function(player)
 	local session = Sessions[player.UserId]
