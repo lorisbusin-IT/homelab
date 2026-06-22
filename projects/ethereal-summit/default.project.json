@@ -1,0 +1,60 @@
+{
+  "name": "EtherealSummit",
+  "tree": {
+    "$className": "DataModel",
+    "ServerScriptService": {
+      "$className": "ServerScriptService",
+      "DataStoreManager": {
+        "$path": "src/ServerScriptService/DataStoreManager.server.lua"
+      },
+      "MonetizationHandler": {
+        "$path": "src/ServerScriptService/MonetizationHandler.server.lua"
+      },
+      "IslandManager": {
+        "$path": "src/ServerScriptService/IslandManager.server.lua"
+      },
+      "ResourceSystem": {
+        "$path": "src/ServerScriptService/ResourceSystem.server.lua"
+      },
+      "LeaderboardSystem": {
+        "$path": "src/ServerScriptService/LeaderboardSystem.server.lua"
+      },
+      "GameManager": {
+        "$path": "src/ServerScriptService/GameManager.server.lua"
+      }
+    },
+    "StarterPlayer": {
+      "$className": "StarterPlayer",
+      "StarterPlayerScripts": {
+        "$className": "StarterPlayerScripts",
+        "PlayerController": {
+          "$path": "src/StarterPlayerScripts/PlayerController.client.lua"
+        },
+        "UIManager": {
+          "$path": "src/StarterPlayerScripts/UIManager.client.lua"
+        },
+        "ShopClient": {
+          "$path": "src/StarterPlayerScripts/ShopClient.client.lua"
+        }
+      }
+    },
+    "ReplicatedStorage": {
+      "$className": "ReplicatedStorage",
+      "Modules": {
+        "$className": "Folder",
+        "GameConfig": {
+          "$path": "src/ReplicatedStorage/Modules/GameConfig.lua"
+        },
+        "IslandData": {
+          "$path": "src/ReplicatedStorage/Modules/IslandData.lua"
+        },
+        "ResourceData": {
+          "$path": "src/ReplicatedStorage/Modules/ResourceData.lua"
+        },
+        "RemoteEvents": {
+          "$path": "src/ReplicatedStorage/Modules/RemoteEvents.lua"
+        }
+      }
+    }
+  }
+}
