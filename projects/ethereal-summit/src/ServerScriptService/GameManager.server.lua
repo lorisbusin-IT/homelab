@@ -150,6 +150,18 @@ local function onPlayerAdded(player)
 		if dailyEvt then
 			dailyEvt:FireClient(player, DailyRewardsSystem.getUIData(data))
 		end
+
+		-- Alle bestehenden Ore-Nodes an den neuen Spieler senden
+		-- (Server feuert SpawnOre beim Start, neue Spieler verpassen diese Events)
+		local spawnEvt = getEv("SpawnOre")
+		if spawnEvt then
+			for oreId, node in pairs(ResourceSystem.getOreNodes()) do
+				spawnEvt:FireClient(player,
+					oreId, node.islandIndex, node.position,
+					node.resource, node.maxHp,
+					node.isLucky or false, node.isBoss or false)
+			end
+		end
 	end)
 	print("[GM] " .. player.Name .. " joined. Rebirth: " .. (data.rebirths or 0))
 end
