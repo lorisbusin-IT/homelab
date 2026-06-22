@@ -19,6 +19,36 @@
       "LeaderboardSystem": {
         "$path": "src/ServerScriptService/LeaderboardSystem.server.lua"
       },
+      "RebirthSystem": {
+        "$path": "src/ServerScriptService/RebirthSystem.server.lua"
+      },
+      "DailyRewardsSystem": {
+        "$path": "src/ServerScriptService/DailyRewardsSystem.server.lua"
+      },
+      "QuestSystem": {
+        "$path": "src/ServerScriptService/QuestSystem.server.lua"
+      },
+      "CodeSystem": {
+        "$path": "src/ServerScriptService/CodeSystem.server.lua"
+      },
+      "AchievementSystem": {
+        "$path": "src/ServerScriptService/AchievementSystem.server.lua"
+      },
+      "PetSystem": {
+        "$path": "src/ServerScriptService/PetSystem.server.lua"
+      },
+      "AnnouncementSystem": {
+        "$path": "src/ServerScriptService/AnnouncementSystem.server.lua"
+      },
+      "EventSystem": {
+        "$path": "src/ServerScriptService/EventSystem.server.lua"
+      },
+      "CrateSystem": {
+        "$path": "src/ServerScriptService/CrateSystem.server.lua"
+      },
+      "WorldBuilder": {
+        "$path": "src/ServerScriptService/WorldBuilder.server.lua"
+      },
       "GameManager": {
         "$path": "src/ServerScriptService/GameManager.server.lua"
       }
@@ -35,6 +65,12 @@
         },
         "ShopClient": {
           "$path": "src/StarterPlayerScripts/ShopClient.client.lua"
+        },
+        "EffectsClient": {
+          "$path": "src/StarterPlayerScripts/EffectsClient.client.lua"
+        },
+        "TutorialClient": {
+          "$path": "src/StarterPlayerScripts/TutorialClient.client.lua"
         }
       }
     },

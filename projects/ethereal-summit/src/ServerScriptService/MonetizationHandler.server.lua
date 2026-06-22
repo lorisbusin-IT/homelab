@@ -23,13 +23,14 @@ end
 -- Alle Passes beim Join pruefen und in der Session speichern
 function MonetizationHandler.loadPassesForPlayer(player, session)
 	session.passes = {
-		vip      = MonetizationHandler.checkGamePass(player, GameConfig.GAME_PASSES.VIP),
-		autoMine = MonetizationHandler.checkGamePass(player, GameConfig.GAME_PASSES.AUTO_MINE),
-		pet      = MonetizationHandler.checkGamePass(player, GameConfig.GAME_PASSES.PET),
+		vip        = MonetizationHandler.checkGamePass(player, GameConfig.GAME_PASSES.VIP),
+		autoMine   = MonetizationHandler.checkGamePass(player, GameConfig.GAME_PASSES.AUTO_MINE),
+		pet        = MonetizationHandler.checkGamePass(player, GameConfig.GAME_PASSES.PET),
+		battlePass = MonetizationHandler.checkGamePass(player, GameConfig.GAME_PASSES.BATTLE_PASS),
+		luckyEgg   = MonetizationHandler.checkGamePass(player, GameConfig.GAME_PASSES.LUCKY_EGG),
 	}
 	session.isPremium = player.MembershipType == Enum.MembershipType.Premium
 
-	-- Persistente Passes in den Spieler-Daten speichern
 	if session.data then
 		session.data.passes = session.passes
 	end
@@ -40,6 +41,11 @@ function MonetizationHandler.getCoinMultiplier(session)
 	local mult = 1.0
 	if session.passes and session.passes.vip    then mult = mult * GameConfig.VIP_MULTIPLIER     end
 	if session.isPremium                         then mult = mult * GameConfig.PREMIUM_MULTIPLIER end
+
+	-- Rebirth-Multiplikator
+	if session.data and session.data.rebirthMult then
+		mult = mult * session.data.rebirthMult
+	end
 
 	-- Zeitlicher Boost aktiv?
 	if session.data and session.data.boosts then
@@ -54,15 +60,35 @@ function MonetizationHandler.getCoinMultiplier(session)
 		mult = mult * (GameConfig.SELL_BOOST_MULT[lvl] or 1.0)
 	end
 
+	-- Pet-Multiplikator (wird von GameManager gesetzt)
+	if session.petMults and session.petMults.coinMult then
+		mult = mult * session.petMults.coinMult
+	end
+
+	-- Combo-Multiplikator
+	if session.comboMult and session.comboMult > 1.0 then
+		mult = mult * session.comboMult
+	end
+
+	-- Event-Multiplikator (Gold Rush / Meteor)
+	if session.eventCoinMult and session.eventCoinMult > 1.0 then
+		mult = mult * session.eventCoinMult
+	end
+
 	return mult
 end
 
--- Gluecksmultiplikator (beinflusst seltene Erze)
+-- Gluecksmultiplikator (beeinflusst seltene Erze)
 function MonetizationHandler.getLuckBonus(session)
+	local bonus = 0
 	if session.passes and session.passes.pet then
-		return GameConfig.PET_LUCK_BONUS
+		bonus = bonus + GameConfig.PET_LUCK_BONUS
 	end
-	return 0
+	-- Pet-Luck-Bonus
+	if session.petMults and session.petMults.luckBonus then
+		bonus = bonus + session.petMults.luckBonus
+	end
+	return math.min(bonus, 0.80)  -- Cap bei 80%
 end
 
 -- Receipt-Verarbeitung: Wird von Roblox aufgerufen wenn Kauf abgeschlossen
@@ -93,18 +119,29 @@ MarketplaceService.ProcessReceipt = function(receiptInfo)
 	local productType = ""
 
 	if productId == GameConfig.DEV_PRODUCTS.GEM_SMALL then
-		data.gems = data.gems + GameConfig.GEM_AMOUNTS.GEM_SMALL
-		granted    = true
-		productType = "gem_small"
+		data.gems   = (data.gems or 0) + GameConfig.GEM_AMOUNTS.GEM_SMALL
+		granted      = true
+		productType  = "gem_small"
 	elseif productId == GameConfig.DEV_PRODUCTS.GEM_LARGE then
-		data.gems = data.gems + GameConfig.GEM_AMOUNTS.GEM_LARGE
-		granted    = true
-		productType = "gem_large"
+		data.gems   = (data.gems or 0) + GameConfig.GEM_AMOUNTS.GEM_LARGE
+		granted      = true
+		productType  = "gem_large"
+	elseif productId == GameConfig.DEV_PRODUCTS.GEM_XL then
+		data.gems   = (data.gems or 0) + GameConfig.GEM_AMOUNTS.GEM_XL
+		granted      = true
+		productType  = "gem_xl"
 	elseif productId == GameConfig.DEV_PRODUCTS.COIN_BOOST then
+		data.boosts  = data.boosts or {}
 		data.boosts.coinBoostExpiry = os.time() + GameConfig.COIN_BOOST_DURATION
 		data.boosts.coinBoostMult   = GameConfig.COIN_BOOST_MULT
-		granted    = true
-		productType = "coin_boost"
+		granted      = true
+		productType  = "coin_boost"
+	elseif productId == GameConfig.DEV_PRODUCTS.COIN_BOOST5 then
+		data.boosts  = data.boosts or {}
+		data.boosts.coinBoostExpiry = os.time() + GameConfig.COIN_BOOST5_DURATION
+		data.boosts.coinBoostMult   = GameConfig.COIN_BOOST5_MULT
+		granted      = true
+		productType  = "coin_boost5"
 	end
 
 	if not granted then

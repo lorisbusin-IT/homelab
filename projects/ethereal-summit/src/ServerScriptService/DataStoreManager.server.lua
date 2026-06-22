@@ -1,37 +1,88 @@
--- Ethereal Summit – Datenpersistenz (Server)
+-- Ethereal Summit – Datenpersistenz v2
 local DataStoreService = game:GetService("DataStoreService")
 local GameConfig       = require(game.ReplicatedStorage.Modules.GameConfig)
 
 local DataStoreManager = {}
-local PlayerStore      = DataStoreService:GetDataStore("EtherealSummit_v1")
+local PlayerStore      = DataStoreService:GetDataStore("EtherealSummit_v2")
 local ReceiptStore     = DataStoreService:GetDataStore("EtherealSummit_Receipts_v1")
 
--- Standard-Daten fuer neue Spieler
 local function defaultData()
 	return {
+		-- Kern
 		coins            = 0,
 		gems             = 0,
 		highestIsland    = 1,
 		unlockedIslands  = {[1] = true},
 		inventory        = {},
 		upgrades         = { pickaxe=1, backpack=1, autoMiner=0, sellBoost=1 },
-		passes           = { vip=false, autoMine=false, pet=false },
+		passes           = { vip=false, autoMine=false, pet=false, battlePass=false, luckyEgg=false },
 		boosts           = { coinBoostExpiry=0, coinBoostMult=GameConfig.COIN_BOOST_MULT },
+
+		-- Statistiken
 		stats            = { totalCoinsEarned=0, totalOresMined=0, playTime=0 },
+
+		-- Rebirth
+		rebirths         = 0,
+		rebirthMult      = 1.0,
+
+		-- Daily Rewards
+		daily            = { lastClaimDay="0", streak=0, longestStreak=0 },
+
+		-- Quests
+		quests           = {
+			daily           = {},
+			weekly          = { progress=0, done=false },
+			lastDailyReset  = 0,
+			lastWeeklyReset = 0,
+		},
+
+		-- Promo-Codes
+		usedCodes        = {},
+
+		-- Achievements
+		achievements     = {},
+
+		-- Pets
+		pets             = {
+			owned    = {},         -- { [petId]={ type, rarity, level } }
+			equipped = {nil,nil,nil},
+			nextId   = 1,
+		},
+
+		-- Tutorial
+		tutorialDone     = false,
+
+		-- Meta
 		version          = GameConfig.DATA_VERSION,
 		firstJoin        = os.time(),
 		lastSave         = os.time(),
 	}
 end
 
--- Schema-Migration: Fehlende Felder in alten Saves ergaenzen
+-- Migration von v1 → v2: fehlende Felder ergaenzen
 local function migrate(data)
-	local defaults = defaultData()
-	if not data.gems then data.gems = 0 end
-	if not data.stats then data.stats = defaults.stats end
-	if not data.boosts then data.boosts = defaults.boosts end
+	local d = defaultData()
+
+	-- Neue Felder hinzufuegen falls nicht vorhanden
+	if not data.rebirths then data.rebirths = 0 end
+	if not data.rebirthMult then data.rebirthMult = 1.0 end
+	if not data.daily then data.daily = d.daily end
+	if not data.quests then data.quests = d.quests end
+	if not data.quests.daily then data.quests.daily = {} end
+	if not data.quests.weekly then data.quests.weekly = { progress=0, done=false } end
+	if not data.quests.lastDailyReset then data.quests.lastDailyReset = 0 end
+	if not data.quests.lastWeeklyReset then data.quests.lastWeeklyReset = 0 end
+	if not data.usedCodes then data.usedCodes = {} end
+	if not data.achievements then data.achievements = {} end
+	if not data.pets then data.pets = d.pets end
+	if not data.tutorialDone then data.tutorialDone = false end
+	if not data.passes then data.passes = d.passes end
+	if not data.passes.battlePass then data.passes.battlePass = false end
+	if not data.passes.luckyEgg then data.passes.luckyEgg = false end
+	if not data.stats then data.stats = d.stats end
 	if not data.upgrades.sellBoost then data.upgrades.sellBoost = 1 end
-	if not data.passes then data.passes = defaults.passes end
+	if not data.boosts then data.boosts = d.boosts end
+
 	data.version = GameConfig.DATA_VERSION
 	return data
 end
@@ -59,13 +110,12 @@ function DataStoreManager.SaveData(player, data)
 	data.lastSave = os.time()
 
 	local success, err = pcall(function()
-		PlayerStore:UpdateAsync(key, function(oldData)
+		PlayerStore:UpdateAsync(key, function()
 			return data
 		end)
 	end)
 
 	if not success then
-		-- Einmal wiederholen bei Fehler
 		task.wait(2)
 		pcall(function()
 			PlayerStore:UpdateAsync(key, function() return data end)
@@ -74,7 +124,6 @@ function DataStoreManager.SaveData(player, data)
 	end
 end
 
--- Pruefen ob eine Receipt-ID bereits verarbeitet wurde (Anti-Doppel-Grant)
 function DataStoreManager.IsReceiptProcessed(receiptId)
 	local key = "receipt_" .. receiptId
 	local success, result = pcall(function()

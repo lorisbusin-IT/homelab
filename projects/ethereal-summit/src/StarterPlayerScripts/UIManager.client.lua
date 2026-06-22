@@ -46,10 +46,53 @@ local function makeLabel(parent, name, pos, size, text, color)
 	return lbl
 end
 
-local CoinsLabel  = makeLabel(HUD, "CoinsLabel",  UDim2.new(0,10,0,8),   UDim2.new(1,-20,0,25), "Coins: 0",    Color3.fromRGB(255,220,80))
-local GemsLabel   = makeLabel(HUD, "GemsLabel",   UDim2.new(0,10,0,36),  UDim2.new(1,-20,0,25), "Gems: 0",     Color3.fromRGB(100,200,255))
+local CoinsLabel   = makeLabel(HUD, "CoinsLabel",   UDim2.new(0,10,0,8),   UDim2.new(1,-20,0,25), "Coins: 0",    Color3.fromRGB(255,220,80))
+local GemsLabel    = makeLabel(HUD, "GemsLabel",    UDim2.new(0,10,0,36),  UDim2.new(1,-20,0,25), "Gems: 0",     Color3.fromRGB(100,200,255))
+local RebirthLabel = makeLabel(HUD, "RebirthLabel", UDim2.new(0,10,0,150), UDim2.new(1,-20,0,20), "",            Color3.fromRGB(255,100,255))
 local IslandLabel = makeLabel(HUD, "IslandLabel", UDim2.new(0,10,0,64),  UDim2.new(1,-20,0,25), "Insel: 1",    Color3.fromRGB(180,255,180))
 local InvLabel    = makeLabel(HUD, "InvLabel",    UDim2.new(0,10,0,92),  UDim2.new(1,-20,0,25), "Inv: 0/50",   Color3.fromRGB(200,200,200))
+
+-- Daily-Reward-Button (oben rechts, neben Shop)
+local DailyBtn             = Instance.new("TextButton")
+DailyBtn.Name              = "DailyBtn"
+DailyBtn.Size              = UDim2.new(0, 90, 0, 40)
+DailyBtn.Position          = UDim2.new(1, -220, 0, 10)
+DailyBtn.Text              = "Taegl."
+DailyBtn.TextColor3        = Color3.fromRGB(255,255,255)
+DailyBtn.BackgroundColor3  = Color3.fromRGB(180, 120, 20)
+DailyBtn.Font              = Enum.Font.GothamBold
+DailyBtn.TextSize          = 15
+DailyBtn.BorderSizePixel   = 0
+DailyBtn.Parent            = ScreenGui
+Instance.new("UICorner", DailyBtn).CornerRadius = UDim.new(0, 8)
+
+-- Quest-Button
+local QuestBtn             = Instance.new("TextButton")
+QuestBtn.Name              = "QuestBtn"
+QuestBtn.Size              = UDim2.new(0, 90, 0, 40)
+QuestBtn.Position          = UDim2.new(1, -220, 0, 58)
+QuestBtn.Text              = "Quests"
+QuestBtn.TextColor3        = Color3.fromRGB(255,255,255)
+QuestBtn.BackgroundColor3  = Color3.fromRGB(20, 120, 180)
+QuestBtn.Font              = Enum.Font.GothamBold
+QuestBtn.TextSize          = 15
+QuestBtn.BorderSizePixel   = 0
+QuestBtn.Parent            = ScreenGui
+Instance.new("UICorner", QuestBtn).CornerRadius = UDim.new(0, 8)
+
+-- Rebirth-Button (leuchtet wenn verfuegbar)
+local RebirthBtn           = Instance.new("TextButton")
+RebirthBtn.Name            = "RebirthBtn"
+RebirthBtn.Size            = UDim2.new(0, 90, 0, 40)
+RebirthBtn.Position        = UDim2.new(1, -220, 0, 106)
+RebirthBtn.Text            = "Rebirth"
+RebirthBtn.TextColor3      = Color3.fromRGB(255,255,255)
+RebirthBtn.BackgroundColor3= Color3.fromRGB(60, 60, 80)
+RebirthBtn.Font            = Enum.Font.GothamBold
+RebirthBtn.TextSize        = 15
+RebirthBtn.BorderSizePixel = 0
+RebirthBtn.Parent          = ScreenGui
+Instance.new("UICorner", RebirthBtn).CornerRadius = UDim.new(0, 8)
 
 -- Shop-Button (oben rechts)
 local ShopBtn              = Instance.new("TextButton")
@@ -134,6 +177,22 @@ local function updateHUD(data)
 	CoinsLabel.Text  = "Coins: " .. formatNumber(data.coins or 0)
 	GemsLabel.Text   = "Gems: "  .. formatNumber(data.gems or 0)
 	IslandLabel.Text = "Insel: " .. (data.highestIsland or 1) .. "/" .. GameConfig.MAX_ISLANDS
+
+	-- Rebirth-Label
+	local rebirths = data.rebirths or 0
+	if rebirths > 0 then
+		RebirthLabel.Text    = "Rebirth " .. rebirths .. "x | +" .. math.floor(rebirths * 25) .. "% Coins"
+		RebirthLabel.Visible = true
+	else
+		RebirthLabel.Visible = false
+	end
+
+	-- Rebirth-Button Farbe: leuchtet wenn bereit
+	if data.unlockedIslands and data.unlockedIslands[GameConfig.MAX_ISLANDS] then
+		RebirthBtn.BackgroundColor3 = Color3.fromRGB(160, 30, 200)
+	else
+		RebirthBtn.BackgroundColor3 = Color3.fromRGB(60, 60, 80)
+	end
 
 	local inv      = data.inventory or {}
 	local total    = 0
@@ -320,11 +379,81 @@ local function connectEvents()
 				updateHUD(PlayerData)
 			end
 			if productType == "coin_boost" then
-				showToast("Coin Boost aktiv! 3x fuer 1 Stunde!", "success")
+				showToast("Coin Boost x3 aktiv! 1 Stunde!", "success")
+			elseif productType == "coin_boost5" then
+				showToast("Coin Boost x5 aktiv! 3 Stunden!", "success")
 			elseif productType == "gem_small" then
 				showToast("+100 Gems erhalten!", "success")
 			elseif productType == "gem_large" then
 				showToast("+500 Gems erhalten!", "success")
+			elseif productType == "gem_xl" then
+				showToast("+1200 Gems erhalten!", "success")
+			end
+		end)
+	end
+
+	-- Rebirth-Ergebnis
+	local rebirthEvt = getEvent(RemoteEventsConfig.REBIRTH_RESULT)
+	if rebirthEvt then
+		rebirthEvt.OnClientEvent:Connect(function(success, rebirthsOrMsg, newMult)
+			if success and PlayerData then
+				PlayerData.rebirths   = rebirthsOrMsg
+				PlayerData.rebirthMult= newMult
+				updateHUD(PlayerData)
+			end
+		end)
+	end
+
+	-- Daily Reward Daten
+	local dailyDataEvt = getEvent(RemoteEventsConfig.DAILY_DATA_RESPONSE)
+	if dailyDataEvt then
+		dailyDataEvt.OnClientEvent:Connect(function(dailyData)
+			-- Wenn claimbar: Button hervorheben
+			if dailyData.canClaim then
+				DailyBtn.BackgroundColor3 = Color3.fromRGB(220, 160, 20)
+				DailyBtn.Text = "Taegl. !"
+			else
+				DailyBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+				DailyBtn.Text = "Taegl. " .. (dailyData.streak or 0)
+			end
+		end)
+	end
+
+	-- Daily Reward erhalten
+	local dailyGrantEvt = getEvent(RemoteEventsConfig.DAILY_REWARD_GRANTED)
+	if dailyGrantEvt then
+		dailyGrantEvt.OnClientEvent:Connect(function(success, reward, newStreak)
+			if success and reward then
+				local txt = reward.type == "coins" and ("+" .. reward.amount .. " Coins!")
+					or reward.type == "gems"  and ("+" .. reward.amount .. " Gems!")
+					or "Coin Boost aktiviert!"
+				showToast("Tag " .. newStreak .. ": " .. txt, "success")
+				DailyBtn.BackgroundColor3 = Color3.fromRGB(80, 80, 80)
+				DailyBtn.Text = "Taegl. " .. newStreak
+			end
+		end)
+	end
+
+	-- Achievement erhalten
+	local achievEvt = getEvent(RemoteEventsConfig.ACHIEVEMENT_UNLOCKED)
+	if achievEvt then
+		achievEvt.OnClientEvent:Connect(function(achievId, display, reward)
+			local rewardTxt = reward.coins and ("+" .. reward.coins .. " Coins")
+				or reward.gems and ("+" .. reward.gems .. " Gems") or ""
+			showToast("Achievement: " .. display .. "! " .. rewardTxt, "success")
+		end)
+	end
+
+	-- Pet erhalten
+	local petEggEvt = getEvent(RemoteEventsConfig.PET_EGG_RESULT)
+	if petEggEvt then
+		petEggEvt.OnClientEvent:Connect(function(success, petData, msg)
+			if success and petData then
+				local rarityColors = {
+					common="Gewoehnlich", uncommon="Ungewoehnlich",
+					rare="Selten", epic="Episch", legendary="LEGENDAER"
+				}
+				showToast("Pet erhalten: " .. (rarityColors[petData.rarity] or "?") .. " " .. petData.name, "success")
 			end
 		end)
 	end
@@ -340,8 +469,21 @@ MineBtn.MouseButton1Click:Connect(function()
 	if _G.EtherealMineInput then _G.EtherealMineInput() end
 end)
 
+DailyBtn.MouseButton1Click:Connect(function()
+	local evt = getEvent(RemoteEventsConfig.CLAIM_DAILY_REWARD)
+	if evt then evt:FireServer() end
+end)
+
+QuestBtn.MouseButton1Click:Connect(function()
+	if _G.EtherealToggleQuests then _G.EtherealToggleQuests() end
+end)
+
+RebirthBtn.MouseButton1Click:Connect(function()
+	local evt = getEvent(RemoteEventsConfig.REBIRTH_REQUEST)
+	if evt then evt:FireServer() end
+end)
+
 ShopBtn.MouseButton1Click:Connect(function()
-	-- ShopClient oeffnen/schliessen
 	if _G.EtherealToggleShop then _G.EtherealToggleShop() end
 end)
 

@@ -56,7 +56,7 @@ CloseBtn.Parent            = ShopFrame
 
 -- Tab-Buttons
 local Tabs = {}
-local tabNames = {"Upgrades", "Inseln", "Robux"}
+local tabNames = {"Upgrades", "Inseln", "Kisten", "Pets", "Codes", "Robux"}
 local tabFrames = {}
 local activeTab = "Upgrades"
 
@@ -70,8 +70,8 @@ tabBar.Parent          = ShopFrame
 for i, tabName in ipairs(tabNames) do
 	local btn              = Instance.new("TextButton")
 	btn.Name               = tabName
-	btn.Size               = UDim2.new(0, 120, 1, 0)
-	btn.Position           = UDim2.new(0, (i-1)*128, 0, 0)
+	btn.Size               = UDim2.new(0, 66, 1, 0)
+	btn.Position           = UDim2.new(0, (i-1)*70, 0, 0)
 	btn.Text               = tabName
 	btn.TextColor3         = Color3.fromRGB(200, 200, 200)
 	btn.BackgroundColor3   = Color3.fromRGB(30, 30, 50)
@@ -215,6 +215,174 @@ local function renderIslandsTab()
 	end
 end
 
+-- ====== Kisten-Tab ======
+local function renderCratesTab()
+	clearScroll()
+
+	local crateInfos = {
+		{ key="bronze", name="Bronze-Kiste", cost="1.000 Coins",  color=Color3.fromRGB(160,100,40), desc="Coins, Gems oder ein Pet-Ei" },
+		{ key="silver", name="Silber-Kiste", cost="5.000 Coins",  color=Color3.fromRGB(180,180,180), desc="Bessere Rewards, Rare Ei moeglich" },
+		{ key="gold",   name="Gold-Kiste",   cost="500 Gems",     color=Color3.fromRGB(220,180,20), desc="Legendary Ei moeglich!" },
+	}
+
+	for _, info in ipairs(crateInfos) do
+		makeShopItem(ScrollFrame, info.name, info.desc, info.cost, info.color, function()
+			local evt = getEvent(RemoteEventsConfig.OPEN_CRATE)
+			if evt then evt:FireServer(info.key) end
+		end)
+	end
+
+	-- Erklaerungstext
+	local hintFrame           = Instance.new("Frame")
+	hintFrame.Size            = UDim2.new(1, -10, 0, 60)
+	hintFrame.BackgroundColor3= Color3.fromRGB(20, 20, 40)
+	hintFrame.BorderSizePixel = 0
+	hintFrame.ZIndex          = 12
+	hintFrame.Parent          = ScrollFrame
+	Instance.new("UICorner", hintFrame).CornerRadius = UDim.new(0, 8)
+
+	local hint                = Instance.new("TextLabel")
+	hint.Size                 = UDim2.new(1, -16, 1, 0)
+	hint.Position             = UDim2.new(0, 8, 0, 0)
+	hint.Text                 = "Oeffne Kisten fuer zufaellige Rewards!\nBronze & Silber mit Coins, Gold mit Gems."
+	hint.TextColor3           = Color3.fromRGB(160, 160, 180)
+	hint.BackgroundTransparency = 1
+	hint.Font                 = Enum.Font.Gotham
+	hint.TextSize             = 13
+	hint.TextWrapped          = true
+	hint.TextXAlignment       = Enum.TextXAlignment.Left
+	hint.ZIndex               = 13
+	hint.Parent               = hintFrame
+end
+
+-- Pet-Daten (vom Server geladen)
+local PetData = nil
+
+local function renderPetsTab()
+	clearScroll()
+
+	-- Eier-Sektion
+	local eggDefs = {
+		{ key="common",    name="Normales Ei",    costStr="100 Coins",  color=Color3.fromRGB(160,160,160) },
+		{ key="rare",      name="Seltenes Ei",    costStr="500 Gems",   color=Color3.fromRGB(40,100,200)  },
+		{ key="legendary", name="Legendaeres Ei", costStr="999 Gems",   color=Color3.fromRGB(200,160,20)  },
+	}
+
+	for _, egg in ipairs(eggDefs) do
+		makeShopItem(ScrollFrame, egg.name, "Oeffne fuer Pets!", egg.costStr, egg.color, function()
+			local evt = getEvent(RemoteEventsConfig.OPEN_PET_EGG)
+			if evt then evt:FireServer(egg.key) end
+		end)
+	end
+
+	-- Eigene Pets anzeigen
+	if PetData and PetData.owned then
+		for _, pet in ipairs(PetData.owned) do
+			local equipped = false
+			if PetData.equipped then
+				for _, eq in ipairs(PetData.equipped) do
+					if eq == pet.id then equipped = true; break end
+				end
+			end
+
+			local rColors = {
+				common="Gewoehnlich", uncommon="Ungewoehnlich",
+				rare="Selten", epic="Episch", legendary="LEGENDAER"
+			}
+			local subtitle = (rColors[pet.rarity] or "?") .. " " .. pet.name .. " – Lv." .. pet.level
+			local btnText  = equipped and "Ausgeruestet" or "Equip (Slot 1)"
+			local btnColor = equipped and Color3.fromRGB(40,140,60) or Color3.fromRGB(80,40,140)
+
+			makeShopItem(ScrollFrame, pet.name, subtitle, btnText, btnColor, function()
+				if not equipped then
+					local evt = getEvent(RemoteEventsConfig.EQUIP_PET)
+					if evt then evt:FireServer(pet.id, 1) end
+				end
+			end)
+		end
+	end
+
+	-- Refresh Pet-Daten anfordern
+	local reqEvt = getEvent(RemoteEventsConfig.REQUEST_PET_DATA)
+	if reqEvt then reqEvt:FireServer() end
+end
+
+-- Code-Eingabe Tab
+local codeInput = nil
+
+local function renderCodesTab()
+	clearScroll()
+
+	-- Code-Eingabefeld
+	local inputFrame           = Instance.new("Frame")
+	inputFrame.Size            = UDim2.new(1, -10, 0, 80)
+	inputFrame.BackgroundColor3= Color3.fromRGB(25,25,45)
+	inputFrame.BorderSizePixel = 0
+	inputFrame.ZIndex          = 12
+	inputFrame.Parent          = ScrollFrame
+	Instance.new("UICorner", inputFrame).CornerRadius = UDim.new(0, 8)
+
+	local lbl                  = Instance.new("TextLabel")
+	lbl.Size                   = UDim2.new(1, -10, 0, 24)
+	lbl.Position               = UDim2.new(0, 8, 0, 6)
+	lbl.Text                   = "Promo-Code eingeben:"
+	lbl.TextColor3             = Color3.fromRGB(200,200,200)
+	lbl.BackgroundTransparency = 1
+	lbl.Font                   = Enum.Font.Gotham
+	lbl.TextSize               = 14
+	lbl.TextXAlignment         = Enum.TextXAlignment.Left
+	lbl.ZIndex                 = 13
+	lbl.Parent                 = inputFrame
+
+	codeInput                  = Instance.new("TextBox")
+	codeInput.Size             = UDim2.new(0.65, -5, 0, 30)
+	codeInput.Position         = UDim2.new(0, 8, 0, 34)
+	codeInput.Text             = ""
+	codeInput.PlaceholderText  = "z.B. ETHEREAL100"
+	codeInput.TextColor3       = Color3.fromRGB(255,255,255)
+	codeInput.BackgroundColor3 = Color3.fromRGB(40,40,60)
+	codeInput.Font             = Enum.Font.GothamBold
+	codeInput.TextSize         = 15
+	codeInput.BorderSizePixel  = 0
+	codeInput.ZIndex           = 13
+	codeInput.Parent           = inputFrame
+	Instance.new("UICorner", codeInput).CornerRadius = UDim.new(0, 6)
+
+	local redeemBtn            = Instance.new("TextButton")
+	redeemBtn.Size             = UDim2.new(0.33, -5, 0, 30)
+	redeemBtn.Position         = UDim2.new(0.67, 0, 0, 34)
+	redeemBtn.Text             = "Einloesen"
+	redeemBtn.TextColor3       = Color3.fromRGB(255,255,255)
+	redeemBtn.BackgroundColor3 = Color3.fromRGB(40,140,60)
+	redeemBtn.Font             = Enum.Font.GothamBold
+	redeemBtn.TextSize         = 14
+	redeemBtn.BorderSizePixel  = 0
+	redeemBtn.ZIndex           = 13
+	redeemBtn.Parent           = inputFrame
+	Instance.new("UICorner", redeemBtn).CornerRadius = UDim.new(0, 6)
+
+	redeemBtn.MouseButton1Click:Connect(function()
+		local code = codeInput.Text
+		if #code < 3 then return end
+		local evt = getEvent(RemoteEventsConfig.REDEEM_CODE)
+		if evt then evt:FireServer(code) end
+		codeInput.Text = ""
+	end)
+
+	-- Bekannte Codes als Hinweis
+	local hintLbl              = Instance.new("TextLabel")
+	hintLbl.Size               = UDim2.new(1, -10, 0, 40)
+	hintLbl.BackgroundTransparency = 1
+	hintLbl.Text               = "Tipp: Folge uns auf Social Media\nfuer exklusive Codes!"
+	hintLbl.TextColor3         = Color3.fromRGB(140,140,160)
+	hintLbl.Font               = Enum.Font.Gotham
+	hintLbl.TextSize           = 13
+	hintLbl.TextXAlignment     = Enum.TextXAlignment.Left
+	hintLbl.ZIndex             = 12
+	hintLbl.Parent             = ScrollFrame
+	Instance.new("UICorner", hintLbl)
+end
+
 local function renderRobuxTab()
 	clearScroll()
 
@@ -282,8 +450,11 @@ local function switchTab(tabName)
 			or  Color3.fromRGB(180,180,180)
 	end
 	if tabName == "Upgrades" then renderUpgradesTab()
-	elseif tabName == "Inseln" then renderIslandsTab()
-	elseif tabName == "Robux" then renderRobuxTab()
+	elseif tabName == "Inseln"  then renderIslandsTab()
+	elseif tabName == "Kisten"  then renderCratesTab()
+	elseif tabName == "Pets"    then renderPetsTab()
+	elseif tabName == "Codes"   then renderCodesTab()
+	elseif tabName == "Robux"   then renderRobuxTab()
 	end
 end
 
@@ -350,5 +521,279 @@ task.spawn(function()
 				end
 			end
 		end)
+	end
+
+	-- Pet-Daten empfangen und Pets-Tab aktualisieren
+	local petDataEvt = EventsFolder:FindFirstChild(RemoteEventsConfig.PET_DATA_RESPONSE)
+	if petDataEvt then
+		petDataEvt.OnClientEvent:Connect(function(data)
+			PetData = data
+			if ShopFrame.Visible and activeTab == "Pets" then
+				renderPetsTab()
+			end
+		end)
+	end
+
+	-- Pet equipped: Pets-Tab neu rendern
+	local petEquippedEvt = EventsFolder:FindFirstChild(RemoteEventsConfig.PET_EQUIPPED)
+	if petEquippedEvt then
+		petEquippedEvt.OnClientEvent:Connect(function(slot, petId, petInfo)
+			if PetData then
+				if not PetData.equipped then PetData.equipped = {} end
+				PetData.equipped[slot] = petId
+			end
+			if ShopFrame.Visible and activeTab == "Pets" then
+				renderPetsTab()
+			end
+		end)
+	end
+
+	-- Kisten-Ergebnis: Toast + Kisten-Tab aktualisieren
+	local crateResultEvt = EventsFolder:FindFirstChild(RemoteEventsConfig.CRATE_RESULT)
+	if crateResultEvt then
+		crateResultEvt.OnClientEvent:Connect(function(success, result, msg)
+			local text  = success and (result and result.display or "Kiste geoeffnet!") or (msg or "Fehler")
+			local color = success and Color3.fromRGB(30, 140, 60) or Color3.fromRGB(160, 40, 40)
+
+			-- Rarity-Farben
+			if success and result then
+				if result.rarity == "legendary" then color = Color3.fromRGB(180, 120, 20)
+				elseif result.rarity == "epic"  then color = Color3.fromRGB(120, 20, 160)
+				elseif result.rarity == "rare"  then color = Color3.fromRGB(20, 80, 180)
+				end
+			end
+
+			local toast        = Instance.new("TextLabel")
+			toast.Size         = UDim2.new(0, 300, 0, 50)
+			toast.Position     = UDim2.new(0.5, -150, 0, 80)
+			toast.Text         = text
+			toast.TextColor3   = Color3.fromRGB(255, 255, 255)
+			toast.BackgroundColor3 = color
+			toast.BackgroundTransparency = 0.1
+			toast.Font         = Enum.Font.GothamBold
+			toast.TextSize     = 15
+			toast.BorderSizePixel = 0
+			toast.ZIndex       = 30
+			toast.TextWrapped  = true
+			toast.Parent       = ScreenGui
+			Instance.new("UICorner", toast).CornerRadius = UDim.new(0, 8)
+
+			TweenService:Create(toast, TweenInfo.new(0.5, Enum.EasingStyle.Quad,
+				Enum.EasingDirection.Out, 0, false, 2.2),
+				{ TextTransparency=1, BackgroundTransparency=1 }
+			):Play()
+			task.delay(2.8, function() if toast.Parent then toast:Destroy() end end)
+
+			if ShopFrame.Visible and activeTab == "Kisten" then
+				renderCratesTab()
+			end
+		end)
+	end
+
+	-- Code-Ergebnis: Toast anzeigen
+	local codeResultEvt = EventsFolder:FindFirstChild(RemoteEventsConfig.CODE_RESULT)
+	if codeResultEvt then
+		codeResultEvt.OnClientEvent:Connect(function(success, message)
+			local toast        = Instance.new("TextLabel")
+			toast.Size         = UDim2.new(0, 280, 0, 44)
+			toast.Position     = UDim2.new(0.5, -140, 0, 80)
+			toast.Text         = message or (success and "Code eingeloest!" or "Ungültiger Code")
+			toast.TextColor3   = Color3.fromRGB(255, 255, 255)
+			toast.BackgroundColor3 = success
+				and Color3.fromRGB(30, 140, 60)
+				or  Color3.fromRGB(160, 40, 40)
+			toast.BackgroundTransparency = 0.1
+			toast.Font         = Enum.Font.GothamBold
+			toast.TextSize     = 15
+			toast.BorderSizePixel = 0
+			toast.ZIndex       = 30
+			toast.Parent       = ScreenGui
+			Instance.new("UICorner", toast).CornerRadius = UDim.new(0, 8)
+
+			TweenService:Create(toast, TweenInfo.new(0.5, Enum.EasingStyle.Quad, Enum.EasingDirection.Out,
+				0, false, 2.0), { TextTransparency=1, BackgroundTransparency=1 }):Play()
+			task.delay(2.6, function() if toast.Parent then toast:Destroy() end end)
+		end)
+	end
+
+	-- Quest-Panel (einfache Overlay-Liste)
+	local QuestPanel       = Instance.new("Frame")
+	QuestPanel.Name        = "QuestPanel"
+	QuestPanel.Size        = UDim2.new(0, 340, 0, 420)
+	QuestPanel.Position    = UDim2.new(0, 10, 0.5, -210)
+	QuestPanel.BackgroundColor3 = Color3.fromRGB(15, 15, 30)
+	QuestPanel.BackgroundTransparency = 0.05
+	QuestPanel.BorderSizePixel = 0
+	QuestPanel.Visible     = false
+	QuestPanel.ZIndex      = 10
+	QuestPanel.Parent      = ScreenGui
+	Instance.new("UICorner", QuestPanel).CornerRadius = UDim.new(0, 12)
+
+	local qTitle           = Instance.new("TextLabel")
+	qTitle.Size            = UDim2.new(1, -44, 0, 36)
+	qTitle.Position        = UDim2.new(0, 10, 0, 4)
+	qTitle.Text            = "Quests"
+	qTitle.TextColor3      = Color3.fromRGB(255, 220, 80)
+	qTitle.BackgroundTransparency = 1
+	qTitle.Font            = Enum.Font.GothamBold
+	qTitle.TextSize        = 18
+	qTitle.ZIndex          = 11
+	qTitle.Parent          = QuestPanel
+
+	local qClose           = Instance.new("TextButton")
+	qClose.Size            = UDim2.new(0, 36, 0, 36)
+	qClose.Position        = UDim2.new(1, -40, 0, 2)
+	qClose.Text            = "X"
+	qClose.TextColor3      = Color3.fromRGB(255, 100, 100)
+	qClose.BackgroundTransparency = 1
+	qClose.Font            = Enum.Font.GothamBold
+	qClose.TextSize        = 16
+	qClose.ZIndex          = 11
+	qClose.Parent          = QuestPanel
+	qClose.MouseButton1Click:Connect(function() QuestPanel.Visible = false end)
+
+	local qScroll          = Instance.new("ScrollingFrame")
+	qScroll.Size           = UDim2.new(1, -16, 1, -48)
+	qScroll.Position       = UDim2.new(0, 8, 0, 44)
+	qScroll.BackgroundTransparency = 1
+	qScroll.BorderSizePixel = 0
+	qScroll.ScrollBarThickness = 4
+	qScroll.ZIndex         = 11
+	qScroll.Parent         = QuestPanel
+	local qLayout          = Instance.new("UIListLayout", qScroll)
+	qLayout.Padding        = UDim.new(0, 6)
+
+	local QuestData        = nil
+
+	local function renderQuests()
+		for _, c in ipairs(qScroll:GetChildren()) do
+			if c:IsA("Frame") then c:Destroy() end
+		end
+		if not QuestData then return end
+
+		local function makeQuestRow(quest)
+			local row              = Instance.new("Frame")
+			row.Size               = UDim2.new(1, -6, 0, 72)
+			row.BackgroundColor3   = Color3.fromRGB(25, 25, 45)
+			row.BorderSizePixel    = 0
+			row.ZIndex             = 12
+			row.Parent             = qScroll
+			Instance.new("UICorner", row).CornerRadius = UDim.new(0, 8)
+
+			local ql               = Instance.new("TextLabel")
+			ql.Size                = UDim2.new(0.65, 0, 0.5, 0)
+			ql.Position            = UDim2.new(0, 8, 0, 4)
+			ql.Text                = quest.display or quest.id
+			ql.TextColor3          = Color3.fromRGB(230, 230, 230)
+			ql.BackgroundTransparency = 1
+			ql.Font                = Enum.Font.GothamBold
+			ql.TextSize            = 13
+			ql.TextXAlignment      = Enum.TextXAlignment.Left
+			ql.ZIndex              = 13
+			ql.Parent              = row
+
+			local prog             = quest.goal and quest.goal > 0
+				and tostring(math.min(quest.progress or 0, quest.goal)) .. "/" .. quest.goal
+				or "Abgeschlossen"
+			local qs               = Instance.new("TextLabel")
+			qs.Size                = UDim2.new(0.65, 0, 0.5, 0)
+			qs.Position            = UDim2.new(0, 8, 0.5, 0)
+			qs.Text                = "Fortschritt: " .. prog
+			qs.TextColor3          = Color3.fromRGB(140, 160, 140)
+			qs.BackgroundTransparency = 1
+			qs.Font                = Enum.Font.Gotham
+			qs.TextSize            = 12
+			qs.TextXAlignment      = Enum.TextXAlignment.Left
+			qs.ZIndex              = 13
+			qs.Parent              = row
+
+			local done   = quest.done
+			local claimed= quest.claimed
+			local claimBtn = Instance.new("TextButton")
+			claimBtn.Size  = UDim2.new(0, 90, 0, 30)
+			claimBtn.Position = UDim2.new(1, -96, 0.5, -15)
+			claimBtn.Text  = claimed and "Erhalten" or (done and "Einloesen" or "Aktiv")
+			claimBtn.TextColor3 = Color3.fromRGB(255,255,255)
+			claimBtn.BackgroundColor3 = claimed
+				and Color3.fromRGB(60,60,60)
+				or (done and Color3.fromRGB(40,140,60) or Color3.fromRGB(60,40,100))
+			claimBtn.Font  = Enum.Font.GothamBold
+			claimBtn.TextSize = 12
+			claimBtn.BorderSizePixel = 0
+			claimBtn.ZIndex = 13
+			claimBtn.Parent = row
+			Instance.new("UICorner", claimBtn).CornerRadius = UDim.new(0, 6)
+
+			if done and not claimed then
+				claimBtn.MouseButton1Click:Connect(function()
+					local evt = EventsFolder and EventsFolder:FindFirstChild(RemoteEventsConfig.CLAIM_QUEST_REWARD)
+					if evt then evt:FireServer(quest.id) end
+				end)
+			end
+		end
+
+		local secLbl       = Instance.new("TextLabel")
+		secLbl.Size        = UDim2.new(1, 0, 0, 22)
+		secLbl.Text        = "Tagesquests"
+		secLbl.TextColor3  = Color3.fromRGB(255, 200, 60)
+		secLbl.BackgroundTransparency = 1
+		secLbl.Font        = Enum.Font.GothamBold
+		secLbl.TextSize    = 13
+		secLbl.ZIndex      = 12
+		secLbl.Parent      = qScroll
+
+		if QuestData.daily then
+			for _, q in ipairs(QuestData.daily) do makeQuestRow(q) end
+		end
+
+		local secLbl2      = Instance.new("TextLabel")
+		secLbl2.Size       = UDim2.new(1, 0, 0, 22)
+		secLbl2.Text       = "Wochenquest"
+		secLbl2.TextColor3 = Color3.fromRGB(100, 200, 255)
+		secLbl2.BackgroundTransparency = 1
+		secLbl2.Font       = Enum.Font.GothamBold
+		secLbl2.TextSize   = 13
+		secLbl2.ZIndex     = 12
+		secLbl2.Parent     = qScroll
+
+		if QuestData.weekly then makeQuestRow(QuestData.weekly) end
+
+		qScroll.CanvasSize = UDim2.new(0, 0, 0, qLayout.AbsoluteContentSize.Y + 10)
+	end
+
+	-- Quest-Daten empfangen
+	local questDataEvt = EventsFolder:FindFirstChild(RemoteEventsConfig.QUEST_DATA_RESPONSE)
+	if questDataEvt then
+		questDataEvt.OnClientEvent:Connect(function(data)
+			QuestData = data
+			if QuestPanel.Visible then renderQuests() end
+		end)
+	end
+
+	-- Quest-Fortschritt live aktualisieren
+	local questProgressEvt = EventsFolder:FindFirstChild(RemoteEventsConfig.QUEST_PROGRESS_UPDATE)
+	if questProgressEvt then
+		questProgressEvt.OnClientEvent:Connect(function(questId, progress, done)
+			if not QuestData then return end
+			if QuestData.daily then
+				for _, q in ipairs(QuestData.daily) do
+					if q.id == questId then q.progress = progress; q.done = done; break end
+				end
+			end
+			if QuestData.weekly and QuestData.weekly.id == questId then
+				QuestData.weekly.progress = progress
+				QuestData.weekly.done = done
+			end
+			if QuestPanel.Visible then renderQuests() end
+		end)
+	end
+
+	_G.EtherealToggleQuests = function()
+		QuestPanel.Visible = not QuestPanel.Visible
+		if QuestPanel.Visible then
+			local reqEvt = EventsFolder:FindFirstChild(RemoteEventsConfig.REQUEST_QUEST_DATA)
+			if reqEvt then reqEvt:FireServer() end
+			renderQuests()
+		end
 	end
 end)
