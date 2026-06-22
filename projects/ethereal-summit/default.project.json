@@ -46,6 +46,9 @@
       "CrateSystem": {
         "$path": "src/ServerScriptService/CrateSystem.server.lua"
       },
+      "WorldBuilder": {
+        "$path": "src/ServerScriptService/WorldBuilder.server.lua"
+      },
       "GameManager": {
         "$path": "src/ServerScriptService/GameManager.server.lua"
       }

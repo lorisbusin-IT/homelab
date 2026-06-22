@@ -40,6 +40,23 @@ AnnouncementSystem.setEventsFolder(EF)
 EventSystem.setup(EF, AnnouncementSystem, ResourceSystem, Sessions)
 ResourceSystem.setLuckyChanceFn(function() return EventSystem.luckyOreChance end)
 
+-- Wait for WorldBuilder to place islands, then initialize ore spawning
+task.spawn(function()
+	local deadline = os.clock() + 15
+	repeat task.wait(0.1) until _G.EtherealWorldReady or os.clock() > deadline
+	if not _G.EtherealSpawnPositions then
+		warn("[GM] EtherealSpawnPositions missing – ores will not spawn!")
+		return
+	end
+	for i = 1, 10 do
+		local positions = _G.EtherealSpawnPositions[i]
+		if positions then
+			ResourceSystem.initializeIsland(i, positions)
+		end
+	end
+	print("[GM] All 10 islands initialized with ore nodes.")
+end)
+
 local function getEv(name)
 	return EF:FindFirstChild(name)
 end
