@@ -17,6 +17,9 @@ local QuestSystem        = require(script.Parent.QuestSystem)
 local CodeSystem         = require(script.Parent.CodeSystem)
 local AchievementSystem  = require(script.Parent.AchievementSystem)
 local PetSystem          = require(script.Parent.PetSystem)
+local AnnouncementSystem = require(script.Parent.AnnouncementSystem)
+local EventSystem        = require(script.Parent.EventSystem)
+local CrateSystem        = require(script.Parent.CrateSystem)
 
 -- ========== Sessions & Events ==========
 local Sessions   = {}
@@ -33,6 +36,9 @@ for _, eventName in pairs(RE) do
 end
 
 ResourceSystem.setEventsFolder(EF)
+AnnouncementSystem.setEventsFolder(EF)
+EventSystem.setup(EF, AnnouncementSystem, ResourceSystem, Sessions)
+ResourceSystem.setLuckyChanceFn(function() return EventSystem.luckyOreChance end)
 
 local function getEv(name)
 	return EF:FindFirstChild(name)
@@ -152,7 +158,35 @@ getEv(RE.MINE_ORE).OnServerEvent:Connect(function(player, oreId)
 
 	updateCombo(player, session)
 
-	local success, resource, amount, coinsGained =
+	-- Boss Ore pruefen (spezieller Ore-ID Prefix)
+	if type(oreId) == "string" and oreId:sub(1, 5) == "BOSS_" then
+		local hit, lastHit = EventSystem.hitBossOre(player, session)
+		if hit then
+			local coinEvt = getEv(RE.UPDATE_COINS)
+			if coinEvt then coinEvt:FireClient(player, session.data.coins, session.data.gems) end
+			notify(player, "+" .. GameConfig.EVENTS.boss.hitReward.gems .. " Gems – Boss Treffer!", "success")
+			if lastHit then
+				notify(player, "+" .. GameConfig.EVENTS.boss.bonusReward.gems .. " Gems – LETZTER SCHLAG!", "success")
+				AchievementSystem.checkAll(player, session, EF)
+			end
+		end
+		return
+	end
+
+	-- Event Coin-Multiplikator bestimmen
+	do
+		local evtMult = EventSystem.globalCoinMult
+		if EventSystem.activeEvent and EventSystem.activeEvent.type == "meteor" then
+			local nodes = ResourceSystem.getOreNodes()
+			local node  = nodes[oreId]
+			if node and node.islandIndex == EventSystem.activeEvent.islandIndex then
+				evtMult = math.max(evtMult, EventSystem.activeEvent.coinMult or 1)
+			end
+		end
+		session.eventCoinMult = evtMult
+	end
+
+	local success, resource, amount, coinsGained, isLucky =
 		ResourceSystem.processMineRequest(player, oreId, session, MonetizationHandler)
 	if not success then return end
 
@@ -160,6 +194,17 @@ getEv(RE.MINE_ORE).OnServerEvent:Connect(function(player, oreId)
 	if evt then evt:FireClient(player, oreId, resource, amount, coinsGained) end
 
 	if resource then
+		-- Lucky Ore Ankuendigung
+		if isLucky then
+			AnnouncementSystem.announce(
+				"⭐ " .. player.Name .. " hat ein LUCKY ORE gefunden! " ..
+				(coinsGained > 0 and ("+" .. math.floor(coinsGained) .. " Coins!") or ""),
+				"gold"
+			)
+			local luckyEvt = getEv(RE.LUCKY_ORE_BROKEN)
+			if luckyEvt then luckyEvt:FireAllClients(player.Name, resource, coinsGained) end
+		end
+
 		-- Quest-Fortschritt: "mine"
 		QuestSystem.updateProgress(session, "mine", 1, EF, player)
 
@@ -256,10 +301,14 @@ getEv(RE.REBIRTH_REQUEST).OnServerEvent:Connect(function(player)
 
 	if success then
 		DataStoreManager.SaveData(player, session.data)
-		-- Alle UI-States zuruecksetzen
 		local pdEvt = getEv(RE.PLAYER_DATA_LOADED)
 		if pdEvt then pdEvt:FireClient(player, session.data) end
 		AchievementSystem.checkAll(player, session, EF)
+		AnnouncementSystem.announce(
+			"🔥 " .. player.Name .. " hat Rebirth " .. rebirthsOrMsg .. " erreicht! +" ..
+			math.floor(GameConfig.REBIRTH_MULT_PER_REBIRTH * 100) .. "% permanente Coins!",
+			"purple"
+		)
 		notify(player, "Rebirth " .. rebirthsOrMsg .. "! +" .. math.floor(GameConfig.REBIRTH_MULT_PER_REBIRTH*100) .. "% Coins permanent!", "success")
 	else
 		notify(player, rebirthsOrMsg, "warning")
@@ -359,6 +408,10 @@ getEv(RE.OPEN_PET_EGG).OnServerEvent:Connect(function(player, eggType)
 		AchievementSystem.grantIfApplicable(player, session, "first_pet", EF)
 		if petData and petData.rarity == "legendary" then
 			AchievementSystem.grantIfApplicable(player, session, "legendary_pet", EF)
+			AnnouncementSystem.announce(
+				"🐉 " .. player.Name .. " hat ein LEGENDAERES Pet gezogen: " .. petData.name .. "!",
+				"purple"
+			)
 		end
 		notify(player, petData.rarity:upper() .. " Pet: " .. petData.name .. " erhalten!", "success")
 	else
@@ -458,6 +511,35 @@ getEv(RE.TUTORIAL_COMPLETE).OnServerEvent:Connect(function(player)
 	local session = Sessions[player.UserId]
 	if session and session.data then
 		session.data.tutorialDone = true
+	end
+end)
+
+-- ========== Mystery Crates ==========
+getEv(RE.OPEN_CRATE).OnServerEvent:Connect(function(player, crateType)
+	local session = Sessions[player.UserId]
+	if not session then return end
+	if type(crateType) ~= "string" then return end
+
+	local success, result, msg = CrateSystem.openCrate(
+		session, crateType, AnnouncementSystem, PetSystem, player
+	)
+	local evt = getEv(RE.CRATE_RESULT)
+	if evt then evt:FireClient(player, success, result, msg) end
+
+	if success then
+		if result and result.petInfo then
+			session.petMults = PetSystem.getMultipliers(session)
+			AchievementSystem.grantIfApplicable(player, session, "first_pet", EF)
+			if result.petInfo.rarity == "legendary" then
+				AchievementSystem.grantIfApplicable(player, session, "legendary_pet", EF)
+			end
+		end
+		local coinEvt = getEv(RE.UPDATE_COINS)
+		if coinEvt then coinEvt:FireClient(player, session.data.coins, session.data.gems) end
+		notify(player, result and result.display or "Kiste geoeffnet!", "success")
+		AchievementSystem.checkAll(player, session, EF)
+	else
+		notify(player, msg, "warning")
 	end
 end)
 

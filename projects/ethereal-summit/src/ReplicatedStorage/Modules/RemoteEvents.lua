@@ -84,6 +84,17 @@ local RemoteEvents = {
 
 	-- Tutorial (NEU)
 	TUTORIAL_COMPLETE    = "TutorialComplete",    -- C→S: (neuer Spieler fertig)
+
+	-- Ankuendigungen & Events (NEU)
+	SERVER_ANNOUNCEMENT  = "ServerAnnouncement",  -- S→All: message, color
+	EVENT_STARTED        = "EventStarted",         -- S→All: eventType, duration, islandIndex
+	EVENT_ENDED          = "EventEnded",           -- S→All: eventType
+	BOSS_ORE_HIT         = "BossOreHit",           -- S→All: oreId, hpRemaining, maxHp, playerName
+	LUCKY_ORE_BROKEN     = "LuckyOreBroken",       -- S→All: playerName, resource, coins
+
+	-- Mystery Crates (NEU)
+	OPEN_CRATE           = "OpenCrate",            -- C→S: crateType
+	CRATE_RESULT         = "CrateResult",          -- S→C: success, result, msg
 }
 
 return RemoteEvents

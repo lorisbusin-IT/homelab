@@ -37,6 +37,15 @@
       "PetSystem": {
         "$path": "src/ServerScriptService/PetSystem.server.lua"
       },
+      "AnnouncementSystem": {
+        "$path": "src/ServerScriptService/AnnouncementSystem.server.lua"
+      },
+      "EventSystem": {
+        "$path": "src/ServerScriptService/EventSystem.server.lua"
+      },
+      "CrateSystem": {
+        "$path": "src/ServerScriptService/CrateSystem.server.lua"
+      },
       "GameManager": {
         "$path": "src/ServerScriptService/GameManager.server.lua"
       }

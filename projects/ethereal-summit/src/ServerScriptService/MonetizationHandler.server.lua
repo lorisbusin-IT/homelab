@@ -70,6 +70,11 @@ function MonetizationHandler.getCoinMultiplier(session)
 		mult = mult * session.comboMult
 	end
 
+	-- Event-Multiplikator (Gold Rush / Meteor)
+	if session.eventCoinMult and session.eventCoinMult > 1.0 then
+		mult = mult * session.eventCoinMult
+	end
+
 	return mult
 end
 

@@ -56,7 +56,7 @@ CloseBtn.Parent            = ShopFrame
 
 -- Tab-Buttons
 local Tabs = {}
-local tabNames = {"Upgrades", "Inseln", "Pets", "Codes", "Robux"}
+local tabNames = {"Upgrades", "Inseln", "Kisten", "Pets", "Codes", "Robux"}
 local tabFrames = {}
 local activeTab = "Upgrades"
 
@@ -70,8 +70,8 @@ tabBar.Parent          = ShopFrame
 for i, tabName in ipairs(tabNames) do
 	local btn              = Instance.new("TextButton")
 	btn.Name               = tabName
-	btn.Size               = UDim2.new(0, 120, 1, 0)
-	btn.Position           = UDim2.new(0, (i-1)*128, 0, 0)
+	btn.Size               = UDim2.new(0, 66, 1, 0)
+	btn.Position           = UDim2.new(0, (i-1)*70, 0, 0)
 	btn.Text               = tabName
 	btn.TextColor3         = Color3.fromRGB(200, 200, 200)
 	btn.BackgroundColor3   = Color3.fromRGB(30, 30, 50)
@@ -213,6 +213,46 @@ local function renderIslandsTab()
 			if evt then evt:FireServer(i) end
 		end)
 	end
+end
+
+-- ====== Kisten-Tab ======
+local function renderCratesTab()
+	clearScroll()
+
+	local crateInfos = {
+		{ key="bronze", name="Bronze-Kiste", cost="1.000 Coins",  color=Color3.fromRGB(160,100,40), desc="Coins, Gems oder ein Pet-Ei" },
+		{ key="silver", name="Silber-Kiste", cost="5.000 Coins",  color=Color3.fromRGB(180,180,180), desc="Bessere Rewards, Rare Ei moeglich" },
+		{ key="gold",   name="Gold-Kiste",   cost="500 Gems",     color=Color3.fromRGB(220,180,20), desc="Legendary Ei moeglich!" },
+	}
+
+	for _, info in ipairs(crateInfos) do
+		makeShopItem(ScrollFrame, info.name, info.desc, info.cost, info.color, function()
+			local evt = getEvent(RemoteEventsConfig.OPEN_CRATE)
+			if evt then evt:FireServer(info.key) end
+		end)
+	end
+
+	-- Erklaerungstext
+	local hintFrame           = Instance.new("Frame")
+	hintFrame.Size            = UDim2.new(1, -10, 0, 60)
+	hintFrame.BackgroundColor3= Color3.fromRGB(20, 20, 40)
+	hintFrame.BorderSizePixel = 0
+	hintFrame.ZIndex          = 12
+	hintFrame.Parent          = ScrollFrame
+	Instance.new("UICorner", hintFrame).CornerRadius = UDim.new(0, 8)
+
+	local hint                = Instance.new("TextLabel")
+	hint.Size                 = UDim2.new(1, -16, 1, 0)
+	hint.Position             = UDim2.new(0, 8, 0, 0)
+	hint.Text                 = "Oeffne Kisten fuer zufaellige Rewards!\nBronze & Silber mit Coins, Gold mit Gems."
+	hint.TextColor3           = Color3.fromRGB(160, 160, 180)
+	hint.BackgroundTransparency = 1
+	hint.Font                 = Enum.Font.Gotham
+	hint.TextSize             = 13
+	hint.TextWrapped          = true
+	hint.TextXAlignment       = Enum.TextXAlignment.Left
+	hint.ZIndex               = 13
+	hint.Parent               = hintFrame
 end
 
 -- Pet-Daten (vom Server geladen)
@@ -410,10 +450,11 @@ local function switchTab(tabName)
 			or  Color3.fromRGB(180,180,180)
 	end
 	if tabName == "Upgrades" then renderUpgradesTab()
-	elseif tabName == "Inseln" then renderIslandsTab()
-	elseif tabName == "Pets"   then renderPetsTab()
-	elseif tabName == "Codes"  then renderCodesTab()
-	elseif tabName == "Robux"  then renderRobuxTab()
+	elseif tabName == "Inseln"  then renderIslandsTab()
+	elseif tabName == "Kisten"  then renderCratesTab()
+	elseif tabName == "Pets"    then renderPetsTab()
+	elseif tabName == "Codes"   then renderCodesTab()
+	elseif tabName == "Robux"   then renderRobuxTab()
 	end
 end
 
@@ -503,6 +544,48 @@ task.spawn(function()
 			end
 			if ShopFrame.Visible and activeTab == "Pets" then
 				renderPetsTab()
+			end
+		end)
+	end
+
+	-- Kisten-Ergebnis: Toast + Kisten-Tab aktualisieren
+	local crateResultEvt = EventsFolder:FindFirstChild(RemoteEventsConfig.CRATE_RESULT)
+	if crateResultEvt then
+		crateResultEvt.OnClientEvent:Connect(function(success, result, msg)
+			local text  = success and (result and result.display or "Kiste geoeffnet!") or (msg or "Fehler")
+			local color = success and Color3.fromRGB(30, 140, 60) or Color3.fromRGB(160, 40, 40)
+
+			-- Rarity-Farben
+			if success and result then
+				if result.rarity == "legendary" then color = Color3.fromRGB(180, 120, 20)
+				elseif result.rarity == "epic"  then color = Color3.fromRGB(120, 20, 160)
+				elseif result.rarity == "rare"  then color = Color3.fromRGB(20, 80, 180)
+				end
+			end
+
+			local toast        = Instance.new("TextLabel")
+			toast.Size         = UDim2.new(0, 300, 0, 50)
+			toast.Position     = UDim2.new(0.5, -150, 0, 80)
+			toast.Text         = text
+			toast.TextColor3   = Color3.fromRGB(255, 255, 255)
+			toast.BackgroundColor3 = color
+			toast.BackgroundTransparency = 0.1
+			toast.Font         = Enum.Font.GothamBold
+			toast.TextSize     = 15
+			toast.BorderSizePixel = 0
+			toast.ZIndex       = 30
+			toast.TextWrapped  = true
+			toast.Parent       = ScreenGui
+			Instance.new("UICorner", toast).CornerRadius = UDim.new(0, 8)
+
+			TweenService:Create(toast, TweenInfo.new(0.5, Enum.EasingStyle.Quad,
+				Enum.EasingDirection.Out, 0, false, 2.2),
+				{ TextTransparency=1, BackgroundTransparency=1 }
+			):Play()
+			task.delay(2.8, function() if toast.Parent then toast:Destroy() end end)
+
+			if ShopFrame.Visible and activeTab == "Kisten" then
+				renderCratesTab()
 			end
 		end)
 	end

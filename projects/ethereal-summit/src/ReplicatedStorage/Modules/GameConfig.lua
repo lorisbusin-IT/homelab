@@ -198,4 +198,90 @@ GameConfig.EGG_PET_POOL = {
 	legendary = {"dragon","phoenix","golem","demon","angel","unicorn"},
 }
 
+-- ========== Lucky Ores ==========
+GameConfig.LUCKY_ORE_CHANCE      = 0.05   -- 5% aller Ore-Spawns
+GameConfig.LUCKY_ORE_MULTIPLIER  = 5      -- 5x Coins + Particles + Ankuendigung
+GameConfig.LUCKY_ORE_HP_MULT     = 2      -- Doppelt so viel HP (haerter abzubauen)
+
+-- ========== Timed Server Events ==========
+GameConfig.EVENTS = {
+	meteor = {
+		interval    = 600,   -- alle 10 Minuten
+		warning     = 30,    -- 30s Vorwarnung
+		duration    = 90,    -- 90s aktiv
+		oreCount    = 15,    -- Extra Lucky Erze beim Einschlag
+		coinMult    = 3.0,   -- 3x Coins auf der Einschlags-Insel
+		name        = "METEOR EINSCHLAG",
+		icon        = "meteorite",
+	},
+	goldrush = {
+		interval    = 900,   -- alle 15 Minuten
+		warning     = 15,
+		duration    = 180,   -- 3 Minuten
+		coinMult    = 2.0,   -- 2x Coins server-weit
+		name        = "GOLD RUSH",
+		icon        = "goldrush",
+	},
+	luckyhour = {
+		interval    = 1200,  -- alle 20 Minuten
+		warning     = 15,
+		duration    = 300,   -- 5 Minuten
+		luckyChance = 0.30,  -- 30% Lucky Ores statt 5%
+		name        = "LUCKY HOUR",
+		icon        = "luckyhour",
+	},
+	boss = {
+		interval      = 1800,  -- alle 30 Minuten
+		warning       = 60,
+		duration      = 120,
+		bossHp        = 150,
+		hitReward     = { gems = 5  },  -- Jeder Treffer
+		bonusReward   = { gems = 200 }, -- Letzter Schlag
+		name          = "BOSS ERZ",
+		icon          = "boss",
+	},
+}
+
+-- ========== Mystery Crates ==========
+GameConfig.CRATES = {
+	bronze = {
+		name     = "Bronze-Kiste",
+		cost     = 1000,
+		costType = "coins",
+		pool = {
+			{ type="coins", amount=500,   weight=40 },
+			{ type="coins", amount=2000,  weight=25 },
+			{ type="coins", amount=5000,  weight=15 },
+			{ type="gems",  amount=10,    weight=10 },
+			{ type="gems",  amount=25,    weight=7  },
+			{ type="egg",   eggType="common",    weight=3  },
+		},
+	},
+	silver = {
+		name     = "Silber-Kiste",
+		cost     = 5000,
+		costType = "coins",
+		pool = {
+			{ type="coins", amount=2000,  weight=30 },
+			{ type="coins", amount=10000, weight=20 },
+			{ type="gems",  amount=25,    weight=20 },
+			{ type="gems",  amount=75,    weight=15 },
+			{ type="egg",   eggType="common", weight=10 },
+			{ type="egg",   eggType="rare",   weight=5  },
+		},
+	},
+	gold = {
+		name     = "Gold-Kiste",
+		cost     = 500,
+		costType = "gems",
+		pool = {
+			{ type="gems",  amount=100,   weight=30 },
+			{ type="gems",  amount=250,   weight=25 },
+			{ type="coins", amount=50000, weight=20 },
+			{ type="egg",   eggType="rare",      weight=15 },
+			{ type="egg",   eggType="legendary", weight=10 },
+		},
+	},
+}
+
 return GameConfig

@@ -9,9 +9,14 @@ local ResourceSystem = {}
 local OreNodes       = {}
 local OreCounter     = 0
 local EventsFolder   = nil  -- wird von GameManager gesetzt
+local getLuckyChance = function() return GameConfig.LUCKY_ORE_CHANCE end
 
 function ResourceSystem.setEventsFolder(folder)
 	EventsFolder = folder
+end
+
+function ResourceSystem.setLuckyChanceFn(fn)
+	getLuckyChance = fn
 end
 
 -- Neue eindeutige Ore-ID generieren
@@ -29,17 +34,19 @@ local function getEffectiveMineTime(baseTime, session)
 end
 
 -- Einen neuen Ore-Node auf einer Insel spawnen
-function ResourceSystem.spawnOreNode(islandIndex, position)
+-- forceLucky = true → immer Lucky (z.B. Meteor-Event)
+function ResourceSystem.spawnOreNode(islandIndex, position, forceLucky)
 	local island   = IslandData[islandIndex]
 	if not island then return end
 
-	local luckBonus  = 0  -- Wird bei spezifischem Spieler-Context genutzt
-	local resource   = ResourceData.pickWeighted(island.resources, luckBonus)
+	local resource   = ResourceData.pickWeighted(island.resources, 0)
 	local resData    = ResourceData[resource]
 	if not resData then return end
 
 	local oreId      = newOreId()
-	local maxHp      = math.ceil(resData.mineTime * 2)
+	local isLucky    = forceLucky or (math.random() < getLuckyChance())
+	local hpMult     = isLucky and GameConfig.LUCKY_ORE_HP_MULT or 1
+	local maxHp      = math.ceil(resData.mineTime * 2 * hpMult)
 
 	OreNodes[oreId] = {
 		islandIndex = islandIndex,
@@ -47,14 +54,14 @@ function ResourceSystem.spawnOreNode(islandIndex, position)
 		resource    = resource,
 		hp          = maxHp,
 		maxHp       = maxHp,
+		isLucky     = isLucky,
 		respawning  = false,
 	}
 
-	-- Alle Clients informieren
 	if EventsFolder then
 		local evt = EventsFolder:FindFirstChild("SpawnOre")
 		if evt then
-			evt:FireAllClients(oreId, islandIndex, position, resource, maxHp)
+			evt:FireAllClients(oreId, islandIndex, position, resource, maxHp, isLucky, false)
 		end
 	end
 
@@ -98,7 +105,11 @@ function ResourceSystem.processMineRequest(player, oreId, session, monetizationH
 	-- Erz vollstaendig abgebaut
 	local resource   = node.resource
 	local resData    = ResourceData[resource]
+	local isLucky    = node.isLucky or false
 	local amount     = 1
+
+	-- Lucky-Ore-Multiplikator
+	local luckyMult  = isLucky and GameConfig.LUCKY_ORE_MULTIPLIER or 1
 
 	-- Inventar-Kapazitaet pruefen
 	local maxSlots   = GameConfig.BACKPACK_CAPACITY[data.upgrades.backpack] or 50
@@ -107,26 +118,26 @@ function ResourceSystem.processMineRequest(player, oreId, session, monetizationH
 
 	if totalItems >= maxSlots then
 		-- Inventar voll: direkt verkaufen
-		local coinMult   = monetizationHandler and monetizationHandler.getCoinMultiplier(session) or 1
-		local baseValue  = resData.value
-		local coinsGained = math.floor(baseValue * coinMult)
+		local coinMult    = monetizationHandler and monetizationHandler.getCoinMultiplier(session) or 1
+		local coinsGained = math.floor(resData.value * coinMult * luckyMult)
 		data.coins = data.coins + coinsGained
 		data.stats.totalCoinsEarned = data.stats.totalCoinsEarned + coinsGained
 		data.stats.totalOresMined   = data.stats.totalOresMined + 1
 
 		local respawnTime = resData.mineTime * IslandData.RESPAWN_MULTIPLIER
 		removeAndRespawn(oreId, respawnTime, node.islandIndex, node.position)
-		return true, resource, amount, coinsGained
+		return true, resource, amount, coinsGained, isLucky
 	end
 
-	-- Ins Inventar legen
-	data.inventory[resource] = (data.inventory[resource] or 0) + amount
+	-- Ins Inventar legen (Lucky Ore: mehrfache Menge)
+	local inventoryAmount = isLucky and luckyMult or 1
+	data.inventory[resource] = (data.inventory[resource] or 0) + inventoryAmount
 	data.stats.totalOresMined = data.stats.totalOresMined + 1
 
 	local respawnTime = resData.mineTime * IslandData.RESPAWN_MULTIPLIER
 	removeAndRespawn(oreId, respawnTime, node.islandIndex, node.position)
 
-	return true, resource, amount, 0
+	return true, resource, inventoryAmount, 0, isLucky
 end
 
 -- Alle Ressourcen eines Spielers verkaufen (oder bestimmte Menge)
